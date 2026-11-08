@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Link } from 'react-router-dom';
+import { protestService } from '../services/protestService';
 import { petitionService } from '../services/petitionService';
-import PetitionCard from '../components/PetitionCard';
 import LoadingSpinner from '../components/LoadingSpinner';
+import PetitionPreview from '../components/PetitionPreview';
+import useCanHandle3D from '../components/three/useCanHandle3D';
+import HowItWorksSection from '../components/three/HowItWorksSection';
 import {
   Sparkles,
   ArrowRight,
@@ -11,11 +14,19 @@ import {
   Users,
   ShieldCheck,
   Megaphone,
-  Trophy
+  Building,
+  Vote,
+  ThumbsUp
 } from 'lucide-react';
 
+// Lazy load 3D Canvas bundle so initial paint is instant
+const Scene3D = lazy(() => import('../components/three/Scene3D'));
+const HeroScene = lazy(() => import('../components/three/HeroScene'));
+
 const HomePage = () => {
-  const [featuredPetitions, setFeaturedPetitions] = useState([]);
+  const canHandle3D = useCanHandle3D();
+
+  const [protests, setProtests] = useState([]);
   const [stats, setStats] = useState({
     totalPetitions: 0,
     activePetitions: 0,
@@ -27,11 +38,11 @@ const HomePage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [petitionsData, statsData] = await Promise.all([
-          petitionService.getPetitions({ limit: 6, sort: 'popular' }),
+        const [protestsData, statsData] = await Promise.all([
+          protestService.getPublishedProtests({ limit: 6, sort: 'most-voted' }),
           petitionService.getStats()
         ]);
-        setFeaturedPetitions(petitionsData.petitions || []);
+        setProtests(protestsData.protests || []);
         if (statsData.stats) {
           setStats(statsData.stats);
         }
@@ -48,36 +59,84 @@ const HomePage = () => {
   return (
     <div>
       {/* Hero Section */}
-      <section className="hero">
+      <section
+        className="hero"
+        style={{
+          padding: '4rem 0 3.5rem',
+          background: 'linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%)',
+          textAlign: 'left'
+        }}
+      >
         <div className="container">
-          <div className="hero-pill">
-            <Sparkles size={16} />
-            <span>Civic Power in Action</span>
-          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gap: '3rem',
+              alignItems: 'center'
+            }}
+          >
+            {/* Left Column: Semantic HTML Copy & CTAs */}
+            <div>
+              <div className="hero-pill" style={{ display: 'inline-flex', marginBottom: '1.25rem' }}>
+                <Sparkles size={16} />
+                <span>Civic Power in Action</span>
+              </div>
 
-          <h1>
-            Empower Your Voice. <br />
-            <span>Turn Belief into Momentum.</span>
-          </h1>
+              <h1 style={{ fontSize: '3rem', margin: '0 0 1.25rem', lineHeight: 1.2 }}>
+                Empower Your Voice. <br />
+                <span>Turn Belief into Momentum.</span>
+              </h1>
 
-          <p>
-            Start a movement, rally your community, and collect verified signatures to
-            drive actionable civic, environmental, and educational policy changes.
-          </p>
+              <p style={{ fontSize: '1.15rem', color: 'var(--text-muted)', marginBottom: '1.5rem', maxWidth: '520px' }}>
+                Start a movement, rally your community, and collect verified votes to
+                drive actionable civic, environmental, and educational policy changes.
+              </p>
 
-          <div className="hero-actions">
-            <Link to="/create-petition" className="btn btn-primary" style={{ padding: '0.85rem 1.8rem' }}>
-              <Megaphone size={18} />
-              Start a Petition
-            </Link>
-            <Link to="/petitions" className="btn btn-secondary" style={{ padding: '0.85rem 1.8rem' }}>
-              Browse Petitions
-              <ArrowRight size={18} />
-            </Link>
+              {/* Proof line */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontSize: '0.88rem',
+                  color: 'var(--secondary)',
+                  fontWeight: 600,
+                  marginBottom: '2rem'
+                }}
+              >
+                <ShieldCheck size={18} color="var(--success)" />
+                <span>100% Verified Voters &bull; 1-Citizen-1-Vote &bull; Simulated Aadhaar eKYC</span>
+              </div>
+
+              <div className="hero-actions" style={{ justifyContent: 'flex-start', margin: 0 }}>
+                <Link to="/protests/create" className="btn btn-primary" style={{ padding: '0.85rem 1.8rem' }}>
+                  <Megaphone size={18} />
+                  Submit a Protest
+                </Link>
+                <Link to="/protests" className="btn btn-secondary" style={{ padding: '0.85rem 1.8rem' }}>
+                  Browse Protests & Votes
+                  <ArrowRight size={18} />
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Column: 3D Hero Scene or Static PetitionPreview Fallback */}
+            <div style={{ height: '440px', position: 'relative', width: '100%' }}>
+              {canHandle3D ? (
+                <Suspense fallback={<PetitionPreview />}>
+                  <Scene3D camera={{ position: [0, 0, 5.8], fov: 42 }} animating={true}>
+                    <HeroScene />
+                  </Scene3D>
+                </Suspense>
+              ) : (
+                <PetitionPreview />
+              )}
+            </div>
           </div>
 
           {/* Stats Bar */}
-          <div className="hero-stats">
+          <div className="hero-stats" style={{ marginTop: '3.5rem' }}>
             <div className="stat-item">
               <h3>{stats.totalPetitions || '4+'}</h3>
               <p>Active Campaigns</p>
@@ -96,7 +155,7 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Featured Petitions */}
+      {/* Featured Published Protests */}
       <section style={{ padding: '4rem 0' }}>
         <div className="container">
           <div
@@ -122,24 +181,24 @@ const HomePage = () => {
                 }}
               >
                 <TrendingUp size={18} />
-                <span>Trending Movements</span>
+                <span>Trending Civic Causes</span>
               </div>
-              <h2 style={{ fontSize: '2rem' }}>Petitions Needing Your Voice</h2>
+              <h2 style={{ fontSize: '2rem' }}>Civic Protests Needing Your Voice</h2>
             </div>
 
             <Link
-              to="/petitions"
+              to="/protests"
               className="btn btn-outline"
               style={{ padding: '0.55rem 1.1rem' }}
             >
-              View All Petitions
+              View All Protests
               <ArrowRight size={16} />
             </Link>
           </div>
 
           {loading ? (
-            <LoadingSpinner text="Loading trending petitions..." />
-          ) : featuredPetitions.length === 0 ? (
+            <LoadingSpinner text="Loading published protests..." />
+          ) : protests.length === 0 ? (
             <div
               style={{
                 textAlign: 'center',
@@ -150,157 +209,81 @@ const HomePage = () => {
               }}
             >
               <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                No active petitions yet. Be the first to start one!
+                No published protests yet. Be the first verified citizen to submit one!
               </p>
-              <Link to="/create-petition" className="btn btn-primary">
-                Launch Petition
+              <Link to="/protests/create" className="btn btn-primary">
+                Submit Protest
               </Link>
             </div>
           ) : (
             <div className="petitions-grid">
-              {featuredPetitions.map((petition) => (
-                <PetitionCard key={petition._id} petition={petition} />
+              {protests.map((protest) => (
+                <div key={protest._id} className="petition-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span className="badge badge-successful" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <CheckCircle2 size={12} />
+                      Published
+                    </span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                      {new Date(protest.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
+                    <Link to={`/protests/${protest._id}`} style={{ color: 'inherit' }}>
+                      {protest.title}
+                    </Link>
+                  </h3>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.85rem' }}>
+                    <Building size={14} />
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {protest.concernedAuthority}
+                    </span>
+                  </div>
+
+                  <p className="card-desc" style={{ flex: 1, marginBottom: '1.25rem' }}>
+                    {protest.description}
+                  </p>
+
+                  <div
+                    style={{
+                      marginTop: 'auto',
+                      paddingTop: '1rem',
+                      borderTop: '1px solid var(--border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary)' }}>
+                        {protest.voteCount || 0}
+                      </span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginLeft: '4px' }}>
+                        Votes
+                      </span>
+                    </div>
+
+                    <Link
+                      to={`/protests/${protest._id}`}
+                      className="btn btn-secondary"
+                      style={{ fontSize: '0.85rem', padding: '0.45rem 0.85rem' }}
+                    >
+                      View & Vote
+                    </Link>
+                  </div>
+                </div>
               ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section
-        id="how-it-works"
-        style={{
-          backgroundColor: '#ffffff',
-          borderTop: '1px solid var(--border)',
-          borderBottom: '1px solid var(--border)',
-          padding: '5rem 0'
-        }}
-      >
-        <div className="container">
-          <div style={{ textAlign: 'center', maxWidth: '650px', margin: '0 auto 3.5rem' }}>
-            <span
-              style={{
-                color: 'var(--primary)',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
-              }}
-            >
-              Simple Process
-            </span>
-            <h2 style={{ fontSize: '2.25rem', marginTop: '0.5rem', marginBottom: '0.75rem' }}>
-              How PetitionPulse Works
-            </h2>
-            <p style={{ color: 'var(--text-muted)' }}>
-              From a single idea to city hall decisions, here is how you can mobilize community support in three easy steps.
-            </p>
-          </div>
+      {/* 3D Sticky "How It Works" Section with Static Fallback */}
+      <HowItWorksSection />
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '2rem'
-            }}
-          >
-            <div
-              style={{
-                padding: '2rem',
-                background: 'var(--bg-subtle)',
-                borderRadius: 'var(--radius-lg)',
-                border: '1px solid var(--border)'
-              }}
-            >
-              <div
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  background: 'var(--primary)',
-                  color: '#ffffff',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: '1.25rem',
-                  marginBottom: '1.25rem'
-                }}
-              >
-                1
-              </div>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.6rem' }}>Create Your Petition</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                State your goal clearly, tell your story, choose an issue category, and set a signature milestone.
-              </p>
-            </div>
-
-            <div
-              style={{
-                padding: '2rem',
-                background: 'var(--bg-subtle)',
-                borderRadius: 'var(--radius-lg)',
-                border: '1px solid var(--border)'
-              }}
-            >
-              <div
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  background: 'var(--primary)',
-                  color: '#ffffff',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: '1.25rem',
-                  marginBottom: '1.25rem'
-                }}
-              >
-                2
-              </div>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.6rem' }}>Mobilize Supporters</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                Share your petition link across social media, local groups, and email. Supporters sign and share in seconds.
-              </p>
-            </div>
-
-            <div
-              style={{
-                padding: '2rem',
-                background: 'var(--bg-subtle)',
-                borderRadius: 'var(--radius-lg)',
-                border: '1px solid var(--border)'
-              }}
-            >
-              <div
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  background: 'var(--success)',
-                  color: '#ffffff',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: '1.25rem',
-                  marginBottom: '1.25rem'
-                }}
-              >
-                3
-              </div>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.6rem' }}>Deliver & Enact Change</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                Reach your target goal, present the verified petition to decision-makers, and celebrate campaign victory!
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Banner */}
+      {/* Final Action Banner */}
       <section style={{ padding: '5rem 0' }}>
         <div className="container">
           <div
@@ -324,10 +307,10 @@ const HomePage = () => {
                 margin: '0 auto 2rem'
               }}
             >
-              It takes less than 2 minutes to launch your petition and start gathering signatures.
+              Verify your identity in seconds and submit your civic protest directly to concerned authorities.
             </p>
             <Link
-              to="/create-petition"
+              to="/register"
               className="btn"
               style={{
                 backgroundColor: '#ffffff',
@@ -337,7 +320,7 @@ const HomePage = () => {
                 fontWeight: 700
               }}
             >
-              Start Free Petition Now
+              Join As a Verified Citizen
             </Link>
           </div>
         </div>
