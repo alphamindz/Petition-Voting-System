@@ -1,0 +1,21 @@
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*
+!.env.example
+
+# Dependencies
+node_modules
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS & Editor
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
