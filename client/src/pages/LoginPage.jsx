@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AlertMessage from '../components/AlertMessage';
-import { LogIn, Key, Mail, Sparkles } from 'lucide-react';
+import { LogIn, Key, Mail, Sparkles, AlertCircle } from 'lucide-react';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -13,31 +13,38 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [requiresVerification, setRequiresVerification] = useState(false);
 
-  const redirectPath = location.state?.from?.pathname || location.state?.from || '/';
+  const redirectPath = location.state?.from?.pathname || location.state?.from || '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setRequiresVerification(false);
     setLoading(true);
 
     try {
       await login(email, password);
       navigate(redirectPath, { replace: true });
     } catch (err) {
-      setError(err.message || 'Invalid email or password');
+      if (err.response?.data?.requiresVerification) {
+        setRequiresVerification(true);
+      }
+      setError(err.response?.data?.message || err.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickDemo = (demoEmail) => {
+  const handleQuickDemo = (demoEmail, demoPass = 'password123') => {
     setEmail(demoEmail);
-    setPassword('password123');
+    setPassword(demoPass);
+    setError(null);
+    setRequiresVerification(false);
   };
 
   return (
-    <div className="container" style={{ padding: '2rem 1.25rem 4rem' }}>
+    <div className="container" style={{ padding: '3rem 1.25rem 4rem' }}>
       <div className="form-card">
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div
@@ -57,11 +64,38 @@ const LoginPage = () => {
           </div>
           <h1 style={{ fontSize: '1.85rem', marginBottom: '0.35rem' }}>Welcome Back</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem' }}>
-            Sign in to start petitions, cast votes, and track your impact.
+            Sign in to start petitions, cast votes, and participate in civic decisions.
           </p>
         </div>
 
         {error && <AlertMessage type="error" message={error} onClose={() => setError(null)} />}
+
+        {requiresVerification && (
+          <div
+            style={{
+              background: '#fffbeb',
+              border: '1px solid #fef3c7',
+              padding: '1rem',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: '1.25rem',
+              fontSize: '0.88rem',
+              color: '#92400e'
+            }}
+          >
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong>Verification Incomplete</strong>
+                <p style={{ margin: '0.25rem 0 0.5rem' }}>
+                  Your account requires email or Aadhaar verification before signing in.
+                </p>
+                <Link to="/register" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem' }}>
+                  Complete Verification Steps →
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -116,7 +150,7 @@ const LoginPage = () => {
             disabled={loading}
             style={{ width: '100%', padding: '0.8rem', marginTop: '0.75rem', fontSize: '1rem' }}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Authenticating...' : 'Sign In'}
           </button>
         </form>
 
@@ -134,7 +168,7 @@ const LoginPage = () => {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.35rem',
-              fontSize: '0.8rem',
+              fontSize: '0.78rem',
               fontWeight: 700,
               color: 'var(--text-muted)',
               textTransform: 'uppercase',
@@ -148,26 +182,26 @@ const LoginPage = () => {
             <button
               type="button"
               className="btn btn-secondary"
-              style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
-              onClick={() => handleQuickDemo('elena@example.com')}
+              style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
+              onClick={() => handleQuickDemo('admin@petitionsystem.org', 'AdminPassword@2025!')}
             >
-              Elena (User)
+              System Admin
             </button>
             <button
               type="button"
               className="btn btn-secondary"
-              style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
-              onClick={() => handleQuickDemo('marcus@example.com')}
+              style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
+              onClick={() => handleQuickDemo('elena@example.com', 'password123')}
             >
-              Marcus (User)
+              Elena (Verified)
             </button>
             <button
               type="button"
               className="btn btn-secondary"
-              style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
-              onClick={() => handleQuickDemo('admin@petitionsystem.org')}
+              style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
+              onClick={() => handleQuickDemo('marcus@example.com', 'password123')}
             >
-              Admin
+              Marcus (Citizen)
             </button>
           </div>
         </div>
@@ -182,7 +216,7 @@ const LoginPage = () => {
         >
           Don't have an account yet?{' '}
           <Link to="/register" style={{ fontWeight: 600 }}>
-            Create one free
+            Start Citizen Registration
           </Link>
         </p>
       </div>

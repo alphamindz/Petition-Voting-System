@@ -5,9 +5,9 @@ const rateLimit = require('express-rate-limit');
  */
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // Limit each IP to 300 requests per windowMs
-  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
-  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again in 15 minutes.'
@@ -18,8 +18,8 @@ const generalLimiter = rateLimit({
  * Sensitive auth endpoints rate limiter (login / register)
  */
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // Limit each IP to 30 login/register requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 40,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -29,21 +29,36 @@ const authLimiter = rateLimit({
 });
 
 /**
- * Signature action rate limiter
+ * OTP endpoints rate limiter (registration, verify, resend, aadhaar)
  */
-const signLimiter = rateLimit({
+const otpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many verification code requests. Please wait 10 minutes before retrying.'
+  }
+});
+
+/**
+ * Vote action rate limiter
+ */
+const voteLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'Too many signatures recorded from this network, please wait a moment.'
+    message: 'Too many voting actions from this network, please wait a moment.'
   }
 });
 
 module.exports = {
   generalLimiter,
   authLimiter,
-  signLimiter
+  otpLimiter,
+  voteLimiter
 };

@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Verify token on initial app load
+  // Verify token on app load
   useEffect(() => {
     const initializeAuth = async () => {
       const storedToken = localStorage.getItem('token');
@@ -49,22 +49,7 @@ export const AuthProvider = ({ children }) => {
       const message =
         err.response?.data?.message || 'Login failed. Please check your credentials.';
       setError(message);
-      throw new Error(message);
-    }
-  };
-
-  const register = async (name, email, password) => {
-    try {
-      setError(null);
-      const data = await authService.register(name, email, password);
-      setUser(data.user);
-      setToken(data.token);
-      return data;
-    } catch (err) {
-      const message =
-        err.response?.data?.message || 'Registration failed. Please try again.';
-      setError(message);
-      throw new Error(message);
+      throw err;
     }
   };
 
@@ -82,16 +67,20 @@ export const AuthProvider = ({ children }) => {
 
   const clearError = () => setError(null);
 
+  const isVerified = Boolean(user && user.isEmailVerified && user.isAadhaarVerified);
+  const isAdmin = Boolean(user && user.role === 'admin');
+
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
-        isAuthenticated: !!user,
+        isAuthenticated: !!user && !!token,
+        isVerified,
+        isAdmin,
         loading,
         error,
         login,
-        register,
         logout,
         updateUser,
         clearError

@@ -8,52 +8,67 @@ import {
   LogOut,
   LogIn,
   UserPlus,
+  Shield,
+  ShieldCheck,
+  Megaphone,
+  CheckCircle,
   Menu,
-  X,
-  Compass
+  X
 } from 'lucide-react';
 
 const Navbar = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, isVerified, logout } = useAuth();
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-  const closeMenu = () => setMobileMenuOpen(false);
-
   return (
     <nav className="navbar">
       <div className="container nav-container">
         {/* Brand */}
-        <Link to="/" className="nav-brand" onClick={closeMenu}>
+        <Link to="/" className="nav-brand">
           <div className="nav-brand-icon">
             <Vote size={22} />
           </div>
           <span>PetitionPulse</span>
         </Link>
 
-        {/* Desktop Links */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          <ul className="nav-links" style={{ display: 'flex' }}>
+        {/* Navigation links */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.75rem' }}>
+          <ul className="nav-links">
             <li>
-              <NavLink to="/petitions" className="nav-link" onClick={closeMenu}>
-                <Compass size={17} />
-                Explore
+              <NavLink to="/protests" className="nav-link">
+                <Megaphone size={17} />
+                Protests & Votes
               </NavLink>
             </li>
             <li>
-              <NavLink to="/create-petition" className="nav-link" onClick={closeMenu}>
+              <NavLink to="/protests/create" className="nav-link">
                 <PlusCircle size={17} />
-                Start a Petition
+                Submit Protest
               </NavLink>
             </li>
+
+            {/* Admin only link */}
+            {isAdmin && (
+              <li>
+                <NavLink
+                  to="/admin"
+                  className="nav-link"
+                  style={{ color: '#b45309', fontWeight: 700 }}
+                >
+                  <Shield size={17} />
+                  Admin Center
+                </NavLink>
+              </li>
+            )}
+
             {isAuthenticated && (
               <li>
-                <NavLink to="/dashboard" className="nav-link" onClick={closeMenu}>
+                <NavLink to="/dashboard" className="nav-link">
                   <LayoutDashboard size={17} />
                   Dashboard
                 </NavLink>
@@ -61,16 +76,11 @@ const Navbar = () => {
             )}
           </ul>
 
-          {/* Auth Controls */}
+          {/* User Auth controls */}
           <div className="nav-auth">
             {isAuthenticated ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                <Link
-                  to="/dashboard"
-                  className="nav-user"
-                  title="Go to Dashboard"
-                  onClick={closeMenu}
-                >
+                <Link to="/dashboard" className="nav-user">
                   <div className="nav-avatar">
                     {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
                   </div>
@@ -86,7 +96,14 @@ const Navbar = () => {
                   >
                     {user?.name}
                   </span>
-                  {user?.role === 'admin' && (
+
+                  {isVerified && (
+                    <span title="Aadhaar & Email Verified" style={{ color: 'var(--success)' }}>
+                      <ShieldCheck size={16} />
+                    </span>
+                  )}
+
+                  {isAdmin && (
                     <span
                       style={{
                         backgroundColor: '#fef3c7',
@@ -128,7 +145,7 @@ const Navbar = () => {
                   style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}
                 >
                   <UserPlus size={15} />
-                  Join Free
+                  Citizen Register
                 </Link>
               </div>
             )}

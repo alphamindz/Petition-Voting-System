@@ -25,9 +25,13 @@ const protect = async (req, res, next) => {
       process.env.JWT_SECRET || 'default_jwt_secret_dev_only'
     );
 
-    const user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id).select('-passwordHash');
     if (!user) {
       return next(new ApiError('User no longer exists', 401));
+    }
+
+    if (!user.isActive) {
+      return next(new ApiError('Account has been suspended or deactivated', 403));
     }
 
     req.user = user;
@@ -59,8 +63,8 @@ const optionalAuth = async (req, res, next) => {
       token,
       process.env.JWT_SECRET || 'default_jwt_secret_dev_only'
     );
-    const user = await User.findById(decoded.id).select('-password');
-    if (user) {
+    const user = await User.findById(decoded.id).select('-passwordHash');
+    if (user && user.isActive) {
       req.user = user;
     }
   } catch (error) {
@@ -87,8 +91,28 @@ const authorize = (...roles) => {
   };
 };
 
+/**
+ * Requires the user to have verified email, verified Aadhaar, and active status
+ */
+const requireVerified = (req, res, next) => {
+  if (!req.user) {
+    return next(new ApiError('Authentication required', 401));
+  }
+  if (!req.user.isActive) {
+    return next(new ApiError('Account has been deactivated. Please contact support.', 403));
+  }
+  if (!req.user.isEmailVerified) {
+    return next(new ApiError('Email verification required before accessing this feature', 403));
+  }
+  if (!req.user.isAadhaarVerified) {
+    return next(new ApiError('Aadhaar identity verification required before accessing this feature', 403));
+  }
+  next();
+};
+
 module.exports = {
   protect,
   optionalAuth,
-  authorize
+  authorize,
+  requireVerified
 };

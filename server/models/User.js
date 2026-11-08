@@ -28,7 +28,8 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: {
       type: String,
-      required: [true, 'Password hash is required'],
+      required: false,
+      default: null,
       select: false
     },
     role: {
@@ -50,6 +51,15 @@ const userSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true
+    },
+    bio: {
+      type: String,
+      default: '',
+      maxlength: [300, 'Bio cannot exceed 300 characters']
+    },
+    avatar: {
+      type: String,
+      default: ''
     }
   },
   {
@@ -70,24 +80,23 @@ userSchema
 // Pre-save hook to hash plain password into passwordHash
 userSchema.pre('save', async function (next) {
   if (this._plainPassword) {
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(12);
     this.passwordHash = await bcrypt.hash(this._plainPassword, salt);
   }
   next();
 });
 
-// Method to verify entered password against passwordHash
+// Compare entered password with passwordHash
 userSchema.methods.comparePassword = async function (enteredPassword) {
   if (!this.passwordHash) {
-    // If passwordHash was excluded by select: false, fetch or fail
     return false;
   }
   return await bcrypt.compare(enteredPassword, this.passwordHash);
 };
 
-// Static helper to generate password hash
+// Static helper to generate password hash (12 rounds)
 userSchema.statics.hashPassword = async function (plainPassword) {
-  const salt = await bcrypt.genSalt(10);
+  const salt = await bcrypt.genSalt(12);
   return await bcrypt.hash(plainPassword, salt);
 };
 
