@@ -43,7 +43,7 @@ const otpLimiter = rateLimit({
 });
 
 /**
- * Vote action rate limiter
+ * Vote & Signature action rate limiter
  */
 const voteLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -52,7 +52,7 @@ const voteLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'Too many voting actions from this network, please wait a moment.'
+    message: 'Too many voting/signature actions from this network, please wait a moment.'
   }
 });
 
@@ -60,5 +60,6 @@ module.exports = {
   generalLimiter,
   authLimiter,
   otpLimiter,
-  voteLimiter
+  voteLimiter,
+  signLimiter: voteLimiter // alias for backward compatibility
 };
