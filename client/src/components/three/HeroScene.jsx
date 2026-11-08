@@ -225,3 +225,4 @@ function CrowdScene() {
 export default function HeroScene() {
   return <CrowdScene />;
 }
+
