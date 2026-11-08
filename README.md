@@ -133,3 +133,4 @@ npm run client   # Starts frontend
 - **Duplicate Vote Prevention**: Mongoose enforces a `unique` compound index on `(user, protest)` in the `Vote` model.
 - **Password Protection**: Passwords are saved with bcrypt hashes (`passwordHash`) and stripped from all JSON responses.
 - **Git Security**: `.env` and `.env.local` files containing secrets are completely excluded via `.gitignore`.
+
